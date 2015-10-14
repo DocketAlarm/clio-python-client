@@ -1,0 +1,21 @@
+# Compiled source #
+###################
+*.pyc
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# OS generated files #
+######################
+.DS_Store?
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# tmp files #
+#############
+~$*.doc
+~WRL*.tmp
