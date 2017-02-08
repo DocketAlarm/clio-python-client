@@ -9,12 +9,20 @@ to access Clio's database and documents.
     Released Under Apache License, Version 2.0
     Copyright 2015 Michael Sander, Docket Alarm, Inc.
 
-Credit: [Docket Alarm is a legal research platform](www.docketalarm.com) that provides
-access to the United States court system, as well as analytics of court cases. Docket Alarm actively uses this Clio API client to automatically download court filings and push them to Clio's document folders. Read more [about the integration here](www.docketalarm.com/clio).
+Credit: [Docket Alarm is a legal research platform](www.docketalarm.com) that 
+provides access to and analytics of United States legal cases. Docket Alarm 
+developed and uses this Clio API client to automatically download court filings 
+and push them to Clio's document folders. Read more [about the integration
+here](www.docketalarm.com/clio).
     
 ## Getting Started
-You will need a functioning Clio account. If you do not have one,
-[you can sign up here](http://www.clio.com). Once you sign up, you will need to create a [Clio Application](http://api-docs.clio.com/v2/#create-a-clio-application), after which you will receive a public and private key. To download and run the python client, you will  need [Git](https://git-scm.com/downloads) and [Python](https://www.python.org/downloads/). Currently only Python version 2.7 has been tested, but adding support for Python 3 should not be difficult.
+You will need a functioning Clio account. If you do not have one, [you can 
+sign up here](http://www.clio.com). Once you sign up, you will need to create a
+[Clio Application](http://api-docs.clio.com/v2/#create-a-clio-application), 
+after which you will receive a public and private key. To download and run the 
+python client, you will  need [Git](https://git-scm.com/downloads) and 
+[Python](https://www.python.org/downloads/). Currently only Python version 
+2.7 has been tested, but adding support for Python 3 should not be difficult.
 
 ### Downloading Source
 Run the following commands to download the python client API and run the API
@@ -23,7 +31,11 @@ test program:
 `git clone https://github.com/docketalarm/clio-python-client.git`
 
 ### Getting an Access Token
-Clio uses a system called OAuth to generate access tokens. This process allows for secure access to Clio without users sharing their passwords, but it is a multi-step process. It is highly recommended that you read the [Clio API documentation on OAuth](http://api-docs.clio.com/v2/#authorization-with-oauth-2-0). The following code template will help you obtain an access token.
+Clio uses a system called OAuth to generate access tokens. This process allows 
+for secure access to Clio without users sharing their passwords, but it is
+a multi-step process. It is highly recommended that you read the [Clio API 
+documentation on OAuth](http://api-docs.clio.com/v2/#authorization-with-oauth-2-0).
+The following code template will help you obtain an access token.
 
 	import clio.client
 	# Initialize the OAuth client with the public and private key.
@@ -53,7 +65,8 @@ according to the [Clio API client documentation](http://api-docs.clio.com/).
 
 #### Example:
 
-The following example get's a list of matters from Clio, then gets a specific matter. It then posts a document
+The following example gets a list of matters from Clio, then gets a specific 
+matter. It then posts a document to Clio:
 
 
 	import clio.client
@@ -62,7 +75,7 @@ The following example get's a list of matters from Clio, then gets a specific ma
 	# Get a list of matters
 	matters = cc.GET.matters(offset=5)
 	
-	# Getting a specific matter.does not take kwargs, just positional ones.
+	# Getting a specific matter. Does not take kwargs, just positional ones.
 	matter = cc.GET.matters(1234)
 
 	# Post a document. Note that uploaded data must use the FileUpload object.
