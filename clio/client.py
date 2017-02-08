@@ -89,11 +89,10 @@ DEBUG = False
 class ClioClient(object):
 	def __init__(self, access_token):
 		'''
-		In general, the access token should always be set.
-		The only exception is if you do not have an access token, and need to 
-		use the oauth api below to obtain one.
+		The access token should always be set. If you do not have an access 
+		token, use the oauth api below to obtain one.
 		'''
-		self.access_token = access_token
+		self.access_token = self._to_data(access_token, "access_token")
 	
 	class FileUpload(object):
 		'''
@@ -101,9 +100,20 @@ class ClioClient(object):
 		calls to upload files. See example in comments above.
 		'''
 		def __init__(self, data, filename = "", content_type=""):
-			self.data = data
-			self.filename = filename
-			self.content_type = content_type
+			self.data = ClioClient._to_data(data, "data")
+			self.filename = ClioClient._to_data(filename, "filename")
+			self.content_type = ClioClient._to_data(content_type, "content_type")
+	
+	@classmethod
+	def _to_data(cls, data, data_type = ""):
+		'''No unicode can get into the HTTP request, otherwise unicode decode
+		errors may be raised. Use this function to find and fix the issues.'''
+		if isinstance(data, unicode):
+			logging.warning("%s: is in unicode, converting to str"%data_type)
+			data = data.encode('utf8')
+		if not isinstance(data, str):
+			logging.error("%s not returning str: %s"%(data_type, type(data)))
+		return data
 	
 	@property
 	def POST(self):
@@ -130,6 +140,12 @@ class ClioClient(object):
 			self.private_key = private_key
 		
 		def authorize_url(self, redirect_uri, state = ''):
+			'''
+			The first step in obtaining an access token. Returns a URL which
+			you need to point a browser to complete the clio signup process.
+			
+			The browser will redirect to redirect_uri and provide a code.
+			'''
 			return api_oauth + 'authorize?' + urllib.urlencode({
 				'response_type' : 'code',
 				'client_id' : self.public_key,
@@ -138,6 +154,9 @@ class ClioClient(object):
 			})
 		
 		def get_token(self, code, redirect_uri):
+			'''
+			This method converts the code to an access token.
+			'''
 			post_args = urllib.urlencode({
 				'client_id':     self.public_key,
 				'client_secret': self.private_key,
@@ -152,12 +171,10 @@ class ClioClient(object):
 		'''
 		Internal class only used to convert properties into functions.
 		'''
-		def __init__(self, clioclient, method, _api = None):
-			self.clioclient, self.method, self._api = clioclient, method, _api
+		def __init__(self, clioclient, method):
+			self.clioclient, self.method = clioclient, method
 		def __getattr__(self, endpoint):
 			def func(*args, **kwargs):
-				if self._api:
-					kwargs['_api'] = self._api
 				return self.clioclient._call(endpoint, self.method, 
 					*args, **kwargs)
 			return func
@@ -181,7 +198,9 @@ class ClioClient(object):
 	
 	@classmethod
 	def urlencode(cls, q):
-		return "&".join(["%s=%s"%(k, v) for k, v in cls._to_keyvalue(q)])
+		return "&".join(["%s=%s"%(k, 
+			urllib.quote(v) if isinstance(v, basestring) else v) 
+			for k, v in cls._to_keyvalue(q)])
 	
 	@classmethod
 	def multipart(cls, q):
@@ -195,6 +214,8 @@ class ClioClient(object):
 				return MultipartParam(k, value = v.data, 
 					filename = v.filename, filetype = v.content_type)
 			else:
+				k = cls._to_data(k, "encode_one k")
+				v = cls._to_data(v, "encode_one v")
 				return MultipartParam(k, value = v)
 		return multipart_encode([encode_one(k, v) 
 			for k, v in cls._to_keyvalue(q)])
@@ -207,23 +228,27 @@ class ClioClient(object):
 					args[0] = "CLIO %s %s"%(self.access_token, args[0])
 				logging.info(*args, **kwargs)
 			except Exception as e:
-				logging.error("Error with CLIO logging: %s"%e)
+				logging.error("Error with CLIO logging: %s"%repr(e))
+	
+	def err(self, *args, **kwargs):
+		try:
+			if args and isinstance(args[0], (str, unicode)):
+				args = list(args)
+				args[0] = "CLIO %s %s"%(self.access_token, args[0])
+			logging.error(*args, **kwargs)
+		except Exception as e:
+			logging.error("Error with CLIO logging: %s"%repr(e))
 	
 	def _call(self, endpoint, method="GET", *args, **kwargs):
 		'''
 		Internal function that does the heavy lifting of calling the Clio API.
 		'''
+		method = self._to_data(method, "method")
 		if method not in ["GET", "POST", "DELETE", "PUT"]:
 			raise Exception("Expecting a GET or POST request, not: %s"%method)    
 		
-		if kwargs.get('_api'):
-			call_api = kwargs['_api']
-			del kwargs['_api']
-		else:
-			call_api = api
-			
 		# Prepare the URL and arguments
-		url = call_api + endpoint
+		url = api + endpoint
 		if args:
 			url += "/" + "/".join(map(unicode, args))
 		self.deb("URL %s: %s\n%s", method, url, kwargs)
@@ -234,10 +259,13 @@ class ClioClient(object):
 			else:
 				# Posted Documents use multipart-form encoded data.
 				datagen, headers = self.multipart(kwargs)
-				datagen = "".join(sorted(datagen))
-				req = urllib2.Request(url, datagen)
-				for (k,v) in headers.items():
-					req.add_header(k,v)
+				datagen = self._to_data("".join(sorted(datagen)), "datagen")
+				req = urllib2.Request(self._to_data(url, 'url'), datagen)
+				for k, v in headers.items():
+					# We must endcode any unicode values into bytes.
+					req.add_header(
+						self._to_data(k, "call k"), 
+						self._to_data(v, "call v"))
 		else:
 			# Everything else uses JSON
 			if kwargs:
@@ -251,17 +279,17 @@ class ClioClient(object):
 		# A well known hack to get urllib to return the correct HTTP method.
 		req.get_method = lambda: method
 		# Add our authorization token.
-		if self.access_token:
-			req.add_header('Authorization', 'Bearer ' + self.access_token)
+		req.add_header('Authorization', 'Bearer ' + self.access_token)
 		
 		# Make the call
 		try:
 			response = urllib2.urlopen(req, timeout = TIMEOUT)
 		except urllib2.HTTPError as e:
+			out = e.fp.read()
+			self.err("Call Error: %s %s %s\n%s %s", method, url, kwargs,	
+				e.code, out)
 			if e.code in [400, 409]:
 				# Return error messages due to malformed requests.
-				out = e.fp.read()
-				self.deb("Error: %s", out)
 				try:
 					json.loads(out)
 				except:
