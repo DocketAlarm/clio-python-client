@@ -286,17 +286,19 @@ class ClioClient(object):
 			response = urllib2.urlopen(req, timeout = TIMEOUT)
 		except urllib2.HTTPError as e:
 			out = e.fp.read()
-			self.err("Call Error: %s %s %s\n%s %s", method, url, kwargs,	
-				e.code, out)
 			if e.code in [400, 409]:
 				# Return error messages due to malformed requests.
 				try:
 					json.loads(out)
 				except:
+					self.err("Call Error: %s %s %s\n%s %s", method, url, kwargs,
+						e.code, out)
 					# Occasionally error 400s are returned as HTML, 
 					# in which case, just raise the original error.
 					raise e
 			else:
+				self.err("Call Error: %s %s %s\n%s %s", method, url, kwargs,
+						e.code, out)
 				raise
 		else:
 			# Success read the results.
