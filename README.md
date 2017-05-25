@@ -13,7 +13,7 @@ Credit: [Docket Alarm is a legal research platform](www.docketalarm.com) that
 provides access to and analytics of United States legal cases. Docket Alarm 
 developed and uses this Clio API client to automatically download court filings 
 and push them to Clio's document folders. Read more [about the integration
-here](www.docketalarm.com/clio).
+here](https://www.docketalarm.com/clio).
     
 ## Getting Started
 You will need a functioning Clio account. If you do not have one, [you can 
